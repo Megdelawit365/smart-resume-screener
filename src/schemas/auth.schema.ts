@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { RoleName } from "../generated/prisma/enums.js"
 
 export const passwordSchema = z
     .string()
@@ -17,7 +18,8 @@ export const RegisterSchema = z.object({
     body: z.object({
         name: z.string().trim().min(1),
         email: emailSchema,
-        password: passwordSchema
+        password: passwordSchema,
+        role: z.enum(RoleName)
     })
 
 })
