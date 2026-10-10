@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma.js';
-import { getGoogleClient } from '../config/oauth.js';
+import { getGoogleClient } from '../lib/oauth.js';
 
 import {
     randomState,
