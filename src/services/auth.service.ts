@@ -2,7 +2,7 @@ import type { loginBody, registerBody } from "../schemas/auth.schema.js"
 import { prisma } from "../lib/prisma.js"
 import { hashPassword, verifyPassword } from "../utils/password.js"
 import { randomUUID } from "crypto"
-import { buildRefreshCredential, createRefreshSecret, digestRefreshSecret, equalDigest, REFRESH_TTL_MS } from "../utils/refresh-token.js"
+import { REFRESH_COOKIE_NAME, refreshCookieOptions, buildRefreshCredential, createRefreshSecret, digestRefreshSecret, equalDigest, REFRESH_TTL_MS } from "../utils/refresh-token.js"
 import { createToken } from "../utils/access-token.js"
 
 export const register = async (data: registerBody) => {
@@ -27,7 +27,14 @@ export const register = async (data: registerBody) => {
     })
 }
 
-export const login = async (data: loginBody) => {
+export interface LoginInput {
+    email: string,
+    password: string,
+    userAgent: string | null,
+    ipAddress: string | null
+}
+
+export const login = async (data: LoginInput) => {
     const { email, password, userAgent, ipAddress } = data
     const existingUser = await prisma.user.findFirst({
         where: { email: email }
@@ -56,8 +63,8 @@ export const login = async (data: loginBody) => {
             userId: existingUser.id,
             currentRefreshDigest: refreshDigest,
             expiresAt,
-            userAgent,
-            ipAddress
+            userAgent: userAgent ? userAgent : "",
+            ipAddress: ipAddress ? ipAddress : ""
         }
     })
 
@@ -69,10 +76,17 @@ export const login = async (data: loginBody) => {
         role: role!.name
     }
 
-    const accessToken = await createToken(principal);
+    const accessToken = await createToken(principal)
     const refreshCredential = await buildRefreshCredential(session.id, refreshSecret)
 
-    return { accessToken, refreshCredential }
+    const user = {
+        id: existingUser.id,
+        email: existingUser.email,
+        role: role?.name,
+        createdAt: existingUser.createdAt
+    }
+
+    return { user, accessToken, refreshCredential }
 
 }
 
@@ -87,10 +101,10 @@ export const logoutCurrent = async (parsed: Parsed) => {
 
     const session = await prisma.authSession.findUnique({
         where: { id: parsed!.sessionId }
-    });
+    })
 
     if (session && !session.revokedAt) {
-        const candidate = digestRefreshSecret(parsed!.secret);
+        const candidate = digestRefreshSecret(parsed!.secret)
 
         if (equalDigest(candidate, session.currentRefreshDigest)) {
             await prisma.authSession.update({
