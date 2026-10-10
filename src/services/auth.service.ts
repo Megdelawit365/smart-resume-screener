@@ -1,9 +1,21 @@
-import type { loginBody, registerBody } from "../schemas/auth.schema.js"
+import type { registerBody } from "../schemas/auth.schema.js"
 import { prisma } from "../lib/prisma.js"
 import { hashPassword, verifyPassword } from "../utils/password.js"
 import { randomUUID } from "crypto"
-import { REFRESH_COOKIE_NAME, refreshCookieOptions, buildRefreshCredential, createRefreshSecret, digestRefreshSecret, equalDigest, REFRESH_TTL_MS } from "../utils/refresh-token.js"
+import { buildRefreshCredential, createRefreshSecret, digestRefreshSecret, equalDigest, REFRESH_TTL_MS } from "../utils/refresh-token.js"
 import { createToken } from "../utils/access-token.js"
+
+type RefreshOutcome =
+    | { kind: "ok"; credentials: string; expiresAt: Date; accessToken: string }
+    | { kind: "reused" }
+    | { kind: "invalid" }
+    | { kind: "conflict" }
+
+type Parsed = {
+    sessionId: string,
+    secret: string
+} | null
+
 
 export const register = async (data: registerBody) => {
     const { email, name, password, role } = data
@@ -90,12 +102,6 @@ export const login = async (data: LoginInput) => {
 
 }
 
-type Parsed = {
-    sessionId: string,
-    secret: string
-} | null
-
-
 export const logoutCurrent = async (parsed: Parsed) => {
     if (!parsed) return
 
@@ -114,9 +120,73 @@ export const logoutCurrent = async (parsed: Parsed) => {
         }
     }
 }
+
 export const logoutAll = async (userId: string) => {
     return prisma.authSession.updateMany({
         where: { userId, revokedAt: null },
         data: { revokedAt: new Date() }
     })
 }
+
+export const refresh = async (parsed: Parsed) => {
+    const outcome: RefreshOutcome = await prisma.$transaction(async (tx) => {
+        const session = await tx.authSession.findUnique({
+            where: { id: parsed!.sessionId },
+            include: {
+                user: {
+                    include: {
+                        role: true
+                    }
+                }
+            }
+        });
+        const now = new Date();
+
+        if (!session || session.expiresAt <= now || session.revokedAt) {
+            return { kind: "invalid" }
+        }
+
+        const candidate = digestRefreshSecret(parsed!.secret);
+
+        if (!equalDigest(candidate, session.currentRefreshDigest)) {
+            await tx.authSession.updateMany({
+                where: { id: session.id, revokedAt: null },
+                data: { revokedAt: now }
+            })
+            return { kind: "reused" }
+        };
+
+        const nextSecret = createRefreshSecret();
+        const nextDigest = digestRefreshSecret(nextSecret);
+
+        const updated = await tx.authSession.updateMany({
+            where: {
+                id: session.id,
+                currentRefreshDigest: session.currentRefreshDigest,
+                revokedAt: null,
+                expiresAt: { gt: now }
+            },
+            data: {
+                currentRefreshDigest: nextDigest
+            }
+        });
+        if (updated.count !== 1) {
+            return { kind: "conflict" }
+        };
+
+        const accessToken = createToken({
+            userId: session.userId,
+            sessionId: session.id,
+            role: session.user.role.name
+        });
+
+        return {
+            kind: "ok",
+            credentials: buildRefreshCredential(session.id, nextSecret),
+            expiresAt: session.expiresAt,
+            accessToken: accessToken
+        };
+    });
+
+    return outcome
+};

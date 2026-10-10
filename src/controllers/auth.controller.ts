@@ -54,3 +54,44 @@ export const logoutAll = async (req: Request, res: Response) => {
     res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieBaseOptions)
     return res.status(200).json({ message: "Logged out on all devices" })
 }
+
+export async function refresh(req: Request, res: Response) {
+    const parsed = parseRefreshCredential(req.cookies?.[REFRESH_COOKIE_NAME])
+
+    if (!parsed) {
+        res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieBaseOptions)
+        return res.status(401).json({ message: "Refresh Session Required!" })
+    }
+    const outcome = await services.refresh(parsed)
+
+    if (outcome.kind === "conflict") {
+        return res.status(409).json({ message: "Refresh already used  retry with the newest credential" })
+    }
+
+    if (outcome.kind === "invalid" || outcome.kind === "reused") {
+        res.clearCookie(REFRESH_COOKIE_NAME, refreshCookieBaseOptions)
+        return res.status(401).json({
+            message:
+                outcome.kind === "invalid"
+                    ? "Invalid or expired refresh session"
+                    : "Refresh credential reuse detected  session revoked"
+        })
+    }
+
+    const remaining = Math.max(
+        0,
+        outcome.expiresAt.getTime() - Date.now()
+    )
+
+    res.cookie(
+        REFRESH_COOKIE_NAME,
+        outcome.credentials,
+        {
+            ...refreshCookieBaseOptions,
+            maxAge: remaining
+        })
+
+    return res.status(200).json({
+        accessToken: outcome.accessToken
+    })
+}
