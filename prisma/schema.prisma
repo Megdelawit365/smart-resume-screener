@@ -55,7 +55,7 @@ model User {
   id           String   @id @default(uuid())
   name         String
   email        String   @unique
-  passwordHash String
+  passwordHash String?
   isActive     Boolean? @default(true)
   tokenVersion Int      @default(0)
 
