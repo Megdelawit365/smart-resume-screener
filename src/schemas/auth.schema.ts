@@ -19,7 +19,7 @@ export const RegisterSchema = z.object({
         name: z.string().trim().min(1),
         email: emailSchema,
         password: passwordSchema,
-        role: z.enum(RoleName)
+        role: z.enum([RoleName.APPLICANT, RoleName.RECRUITER])
     })
 
 })
