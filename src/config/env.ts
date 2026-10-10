@@ -11,6 +11,9 @@ const envSchema = z.object({
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
     GOOGLE_CALLBACK_URL: z.url(),
+    SUPABASE_URL: z.string().url(),
+    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+    SUPABASE_STORAGE_BUCKET: z.string().min(1),
 })
 
 export const env = envSchema.parse(process.env)
