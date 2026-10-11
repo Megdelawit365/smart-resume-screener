@@ -49,6 +49,12 @@ enum ExperienceLevel {
   EXPERT
 }
 
+enum AIReviewStatus {
+  PENDING
+  FAILED
+  DONE
+}
+
 // authentication
 
 model User {
@@ -167,15 +173,16 @@ model Job {
 }
 
 model Application {
-  id          String            @id @default(uuid())
-  applicant   User              @relation(fields: [userId], references: [id])
-  job         Job               @relation(fields: [jobId], references: [id])
-  coverLetter String?
-  status      ApplicationStatus @default(SUBMITTED)
-  resumeUrl   String
-  resumeName  String
-  resumeSize  Int
-  resumeMime  String
+  id             String            @id @default(uuid())
+  applicant      User              @relation(fields: [userId], references: [id])
+  job            Job               @relation(fields: [jobId], references: [id])
+  coverLetter    String?
+  status         ApplicationStatus @default(SUBMITTED)
+  resumeUrl      String
+  resumeName     String
+  resumeSize     Int
+  resumeMime     String
+  aiReviewStatus AIReviewStatus    @default(PENDING)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
