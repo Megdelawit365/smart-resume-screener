@@ -1,5 +1,6 @@
 import { ai } from "../lib/ai.js"
 import { parsedResumeResultSchema, type ParsedResumeResult, } from "../schemas/aiTask.schema.js"
+import { prisma } from "../lib/prisma.js"
 
 const resumeJsonSchema = {
     type: "object",
@@ -50,4 +51,39 @@ export class AIService {
 
         return validated
     }
+
+
+    static async updateApplication(applicationId: string, resumeText: string, jobDescription: string,): Promise<void> {
+        try {
+            const evaluation = await this.screenResume(resumeText, jobDescription)
+
+            await prisma.application.update({
+                where: { id: applicationId },
+                data: {
+                    aiScore: evaluation.alignmentScore,
+                    aiSkills: evaluation.skills,
+                    aiGaps: evaluation.skillGaps,
+                    aiReviewStatus: "DONE",
+                },
+            })
+
+        }
+
+        catch (err) {
+
+            console.error('AI screening error:', err)
+
+            try {
+                await prisma.application.update({
+                    where: { id: applicationId },
+                    data: { aiReviewStatus: "FAILED" },
+                })
+            }
+
+            catch (updateErr) {
+                console.error(`Error updating application:`, updateErr)
+            }
+        }
+    }
 }
+
