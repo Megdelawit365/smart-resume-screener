@@ -3,16 +3,21 @@ import { LoginSchema, RegisterSchema } from "../schemas/auth.schema.js"
 import type { loginBody, registerBody } from "../schemas/auth.schema.js"
 import * as services from "../services/auth.service.js"
 import { parseRefreshCredential, REFRESH_COOKIE_NAME, refreshCookieBaseOptions, refreshCookieOptions, } from "../utils/refresh-token.js"
-import { asyncHandler } from "../utils/async-handler.js"
+import { EmailService } from "../services/email.service.js"
 
 export const register = async (req: Request<{}, {}, registerBody>, res: Response) => {
     const { email, password, name, role } = RegisterSchema.parse(req.body).body
 
     const user = await services.register({ email, password, name, role })
-    return res.status(201).json({
+    res.status(201).json({
         message: "Successfully registered",
         user,
     })
+
+    EmailService.sendWelcomeEmail(user.email, user.name)
+        .catch((err) => {
+            console.error("Failed to send welcome email:", err);
+        })
 }
 
 

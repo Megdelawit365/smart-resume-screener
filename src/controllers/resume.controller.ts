@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express"
 import { prisma } from "../lib/prisma.js"
 import { StorageService } from "../services/storage.service.js"
 import { AIService } from "../services/ai.service.js"
+import { EmailService } from "../services/email.service.js"
 
 export async function applyToJob(req: Request, res: Response, next: NextFunction) {
     // creates application
@@ -26,6 +27,23 @@ export async function applyToJob(req: Request, res: Response, next: NextFunction
     res.status(201).json({
         message: "Application submitted successfully",
         application,
+    })
+
+    const job = await prisma.job.findUnique({ where: { id: jobId } })
+    const jobTitle = job!.title
+
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+
+    // sends confirmation email
+    EmailService.sendApplicationConfirmation(
+        req.user!.email,
+        {
+            candidateName: user!.name ?? "Candidate",
+            jobTitle,
+            applicationId: application.id,
+        }
+    ).catch((err) => {
+        console.error('Failed to send confirmation email:', err)
     })
 
     // Screens resume and adds the evaluations to the db
