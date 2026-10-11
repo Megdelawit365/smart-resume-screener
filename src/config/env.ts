@@ -15,7 +15,12 @@ const envSchema = z.object({
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
     SUPABASE_STORAGE_BUCKET: z.string().min(1),
     GEMINI_API_KEY: z.string().min(1),
-
+    SMTP_HOST: z.string().min(1),
+    SMTP_PORT: z.coerce.number().int().positive(),
+    SMTP_USER: z.string().min(1),
+    SMTP_PASS: z.string().min(1),
+    RESEND_API_KEY: z.string().min(1),
+    EMAIL_FROM: z.string().min(1),
 })
 
 export const env = envSchema.parse(process.env)
