@@ -34,3 +34,21 @@ export const getCurrentUserJobs = async (userId: string) => {
         where: { userId: userId },
     })
 }
+
+export const closeJob = async (jobId: string) => {
+    return await prisma.job.update({
+        where: { id: jobId },
+        data: {
+            status: "CLOSED"
+        }
+    })
+}
+
+export const reopenJob = async (jobId: string) => {
+    return await prisma.job.update({
+        where: { id: jobId },
+        data: {
+            status: "OPEN"
+        }
+    })
+}

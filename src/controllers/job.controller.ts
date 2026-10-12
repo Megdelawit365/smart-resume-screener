@@ -27,3 +27,13 @@ export const getCurrentUserJobs = async (req: Request, res: Response, next: Next
     const jobs = await JobServices.getCurrentUserJobs(req.user!.userId)
     return res.status(200).json({ jobs: jobs })
 }
+
+export const closeJob = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+    const job = await JobServices.closeJob(req.params.id)
+    return res.status(200).json({ job: job })
+}
+
+export const reopenJob = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+    const job = await JobServices.reopenJob(req.params.id)
+    return res.status(200).json({ job: job })
+}
