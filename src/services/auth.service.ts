@@ -55,7 +55,7 @@ export const login = async (data: LoginInput) => {
         throw { status: 401, message: "Invalid email or password." }
     }
 
-    const validPassword = await verifyPassword(existingUser.passwordHash, password)
+    const validPassword = await verifyPassword(existingUser.passwordHash!, password)
     if (!validPassword) {
         throw { status: 401, message: "Invalid email or password." }
     }
@@ -189,4 +189,4 @@ export const refresh = async (parsed: Parsed) => {
     });
 
     return outcome
-};
+}
