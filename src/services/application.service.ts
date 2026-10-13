@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js'
 import type { ApplicationBody } from '../schemas/application.schema.js'
 import { AIService } from './ai.service.js'
+import { StorageService } from './storage.service.js'
 
 interface Resume {
     resumeUrl: string
@@ -10,16 +11,23 @@ interface Resume {
 }
 
 
-export const applyToJob = async (userId: string, jobId: string, data: ApplicationBody, resume: Resume) => {
+export const applyToJob = async (
+    userId: string,
+    jobId: string,
+    data: ApplicationBody,
+    file: Express.Multer.File
+) => {
+    const resumeUrl = await StorageService.uploadFile(file, "resumes")
+
     return await prisma.application.create({
         data: {
-            userId: userId,
-            jobId: jobId,
-            ...data,
-            resumeUrl: resume.resumeUrl,
-            resumeName: resume.resumeName,
-            resumeSize: resume.resumeSize,
-            resumeMime: resume.resumeMime,
+            userId,
+            jobId,
+            coverLetter: data.coverLetter ?? null,
+            resumeUrl,
+            resumeName: file.originalname,
+            resumeSize: file.size,
+            resumeMime: file.mimetype
         }
     })
 }

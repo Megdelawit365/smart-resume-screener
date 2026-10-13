@@ -53,18 +53,25 @@ export class AIService {
     }
 
 
-    static async updateApplication(applicationId: string, resumeText: string, jobDescription: string,): Promise<void> {
+    static async createAIEvaluation(applicationId: string, jobId: string, resumeText: string, jobDescription: string,): Promise<void> {
+        const job = await prisma.job.findUnique({ where: { id: jobId } })
+        if (!job) return
         try {
-            const evaluation = await this.screenResume(resumeText, jobDescription)
+            const evaluation = await AIService.screenResume(resumeText, job.description)
+            await prisma.aIEvaluation.create({
+                data: {
+                    applicationId,
+                    jobId,
+                    alignmentScore: evaluation.alignmentScore,
+                    extractedSkills: evaluation.skills,
+                    skillGaps: evaluation.skillGaps,
+                    summary: evaluation.summary
+                }
+            })
 
             await prisma.application.update({
                 where: { id: applicationId },
-                data: {
-                    aiScore: evaluation.alignmentScore,
-                    aiSkills: evaluation.skills,
-                    aiGaps: evaluation.skillGaps,
-                    aiReviewStatus: "DONE",
-                },
+                data: { aiReviewStatus: "DONE" }
             })
 
         }
