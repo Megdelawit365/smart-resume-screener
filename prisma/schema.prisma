@@ -164,10 +164,11 @@ model Job {
   status          JobStatus       @default(OPEN)
   requirements    String[]
 
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  userId       String
-  applications Application[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  userId        String
+  applications  Application[]
+  aievaluations AIEvaluation[]
 
   @@index([userId])
   @@map("jobs")
@@ -185,11 +186,27 @@ model Application {
   resumeMime     String
   aiReviewStatus AIReviewStatus    @default(PENDING)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String
-  jobId     String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  userId        String
+  jobId         String
+  aievaluations AIEvaluation[]
 
   @@index([userId, jobId])
   @@map("applications")
+}
+
+model AIEvaluation {
+  id              String      @id @default(uuid())
+  alignmentScore  Int
+  extractedSkills String[]
+  skillGaps       String[]
+  summary         String
+  application     Application @relation(fields: [applicationId], references: [id])
+  job             Job         @relation(fields: [jobId], references: [id])
+
+  applicationId String
+  jobId         String
+
+  @@map("ai_evaluations")
 }
