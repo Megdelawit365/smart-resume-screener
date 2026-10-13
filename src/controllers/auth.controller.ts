@@ -6,7 +6,7 @@ import { parseRefreshCredential, REFRESH_COOKIE_NAME, refreshCookieBaseOptions, 
 import { EmailService } from "../services/email.service.js"
 
 export const register = async (req: Request<{}, {}, registerBody>, res: Response) => {
-    const { email, password, name, role } = RegisterSchema.parse(req.body).body
+    const { email, password, name, role } = RegisterSchema.parse({ body: req.body }).body
 
     const user = await services.register({ email, password, name, role })
     res.status(201).json({
@@ -22,7 +22,7 @@ export const register = async (req: Request<{}, {}, registerBody>, res: Response
 
 
 export const login = async (req: Request<{}, {}, loginBody>, res: Response) => {
-    const { email, password } = LoginSchema.parse(req.body).body
+    const { email, password } = LoginSchema.parse({ body: req.body }).body
 
     const userAgent = req.get("user-agent")?.slice(0, 500) ?? null
     const ipAddress = req.ip?.slice(0, 45) ?? null
