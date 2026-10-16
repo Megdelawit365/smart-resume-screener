@@ -28,7 +28,7 @@ export async function applyToJob(req: Request<{ id: string }>, res: Response, ne
 
     // sends confirmation email
     EmailService.sendApplicationConfirmation(
-        req.user!.email,
+        req.auth!.email,
         {
             candidateName: user!.name ?? "Candidate",
             jobTitle,
@@ -40,19 +40,33 @@ export async function applyToJob(req: Request<{ id: string }>, res: Response, ne
 
     // Screens resume and adds the evaluations to the db
     AIService.createAIEvaluation(application.id, job!.id, resumeText, job!.description)
-
+        .catch((err) => console.error("AI screening error:", err))
 }
 
 export const listMyApplications = async (req: Request, res: Response, next: NextFunction) => {
-    const applications = await ApplicationServices.listMyApplications(req.user!.userId)
+    const applications = await ApplicationServices.listMyApplications(req.auth!.userId)
     return res.status(200).json({
         message: "Applications retrieved successfully",
         applications
     })
 }
 
-export const getApplicationById = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
-    const application = await ApplicationServices.getApplicationById(req.params.id)
+export const getMyApplication = async (req: Request<{ id: string }>, res: Response) => {
+    const application = await ApplicationServices.getMyApplication(
+        req.auth!.userId,
+        req.params.id
+    )
+    return res.status(200).json({
+        message: "Application retrieved successfully",
+        application
+    })
+}
+
+export const getApplicationForRecruiter = async (req: Request<{ id: string }>, res: Response) => {
+    const application = await ApplicationServices.getApplicationForRecruiter(
+        req.auth!.userId,
+        req.params.id
+    )
     return res.status(200).json({
         message: "Application retrieved successfully",
         application
@@ -60,7 +74,7 @@ export const getApplicationById = async (req: Request<{ id: string }>, res: Resp
 }
 
 export const withdrawApplication = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
-    const application = await ApplicationServices.withdrawApplication(req.params.id)
+    const application = await ApplicationServices.withdrawApplication(req.auth!.userId, req.params.id)
     return res.status(200).json({
         message: "Application withdrawn successfully",
         application
@@ -68,7 +82,7 @@ export const withdrawApplication = async (req: Request<{ id: string }>, res: Res
 }
 
 export const getApplicationEvaluation = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
-    const evaluation = await ApplicationServices.getApplicationEvaluation(req.user!.userId, req.params.id)
+    const evaluation = await ApplicationServices.getApplicationEvaluation(req.auth!.userId, req.params.id)
     return res.status(200).json({
         message: "Evaluation retrieved successfully",
         evaluation
@@ -76,7 +90,7 @@ export const getApplicationEvaluation = async (req: Request<{ id: string }>, res
 }
 
 export const listApplicationsForJob = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
-    const applications = await ApplicationServices.listApplicationsForJob(req.params.id)
+    const applications = await ApplicationServices.listApplicationsForJob(req.auth!.userId, req.params.id)
     return res.status(200).json({
         message: "Applications for job retrieved successfully",
         applications
@@ -84,25 +98,55 @@ export const listApplicationsForJob = async (req: Request<{ id: string }>, res: 
 }
 
 export const shortlistApplication = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
-    const application = await ApplicationServices.shortlistApplication(req.params.id)
-    return res.status(200).json({
+    const application = await ApplicationServices.shortlistApplication(req.auth!.userId, req.params.id)
+    res.status(200).json({
         message: "Application shortlisted successfully",
         application
     })
+
+    const user = await prisma.user.findUnique({ where: { id: application.userId } })
+    const job = await prisma.job.findUnique({ where: { id: application.jobId } })
+
+    EmailService.sendStatusUpdate(
+        user!.email,
+        user!.name ?? "Candidate",
+        job!.title,
+        "SHORTLISTED"
+    ).catch((err) => console.error("Status email failed:", err))
 }
 
 export const rejectApplication = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
-    const application = await ApplicationServices.rejectApplication(req.params.id)
-    return res.status(200).json({
+    const application = await ApplicationServices.rejectApplication(req.auth!.userId, req.params.id)
+    res.status(200).json({
         message: "Application rejected successfully",
         application
     })
+
+    const user = await prisma.user.findUnique({ where: { id: application.userId } })
+    const job = await prisma.job.findUnique({ where: { id: application.jobId } })
+
+    EmailService.sendStatusUpdate(
+        user!.email,
+        user!.name ?? "Candidate",
+        job!.title,
+        "REJECTED"
+    ).catch((err) => console.error("Status email failed:", err))
 }
 
 export const acceptApplication = async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
-    const application = await ApplicationServices.acceptApplication(req.params.id)
-    return res.status(200).json({
+    const application = await ApplicationServices.acceptApplication(req.auth!.userId, req.params.id)
+    res.status(200).json({
         message: "Application accepted successfully",
         application
     })
+
+    const user = await prisma.user.findUnique({ where: { id: application.userId } })
+    const job = await prisma.job.findUnique({ where: { id: application.jobId } })
+
+    EmailService.sendStatusUpdate(
+        user!.email,
+        user!.name ?? "Candidate",
+        job!.title,
+        "HIRED"
+    ).catch((err) => console.error("Status email failed:", err))
 }
