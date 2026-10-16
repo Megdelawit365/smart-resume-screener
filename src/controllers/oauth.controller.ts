@@ -102,7 +102,9 @@ export async function callback(req: Request, res: Response) {
         const principal = {
             userId: user.id,
             sessionId: sessionId,
-            role: user.role
+            role: user.role,
+            email: user.email,
+            permissions: []
         };
 
         const accessToken = createToken(principal);
