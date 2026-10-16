@@ -31,7 +31,7 @@ export class AIService {
             `
 
         const interaction = await ai.models.generateContent({
-            model: "gemini-2.0-flash",
+            model: "gemini-3.8-flash",
             contents: `JOB DESCRIPTION:\n${jobDescription}\n\nRESUME:\n${resumeText}`,
             config: {
                 systemInstruction,
