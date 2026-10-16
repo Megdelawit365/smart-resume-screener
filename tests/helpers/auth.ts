@@ -12,38 +12,22 @@ export interface TestUser {
 
 export async function createTestUser(
     email: string,
-    roleName: RoleName = "APPLICANT",
-    permissions: string[] = [],
+    roleName: RoleName = "APPLICANT"
 ): Promise<TestUser> {
-    let role = await prisma.role.findUnique({ where: { name: roleName } })
-    if (!role) {
-        role = await prisma.role.create({ data: { name: roleName } })
-    }
+    const role = await prisma.role.findUniqueOrThrow({
+        where: { name: roleName },
+        include: { permissions: { include: { permission: true } } }
+    })
 
-    for (const action of permissions) {
-        let perm = await prisma.permission.findUnique({ where: { action } })
-        if (!perm) {
-            perm = await prisma.permission.create({ data: { action } })
-        }
-
-        const existing = await prisma.rolePermission.findFirst({
-            where: { roleId: role.id, permissionId: perm.id },
-        })
-
-        if (!existing) {
-            await prisma.rolePermission.create({
-                data: { roleId: role.id, permissionId: perm.id },
-            })
-        }
-    }
+    const permissions = role.permissions.map((rp) => rp.permission.action)
 
     const user = await prisma.user.create({
         data: {
             name: `Test ${roleName}`,
             email,
             passwordHash: "hashedpassword",
-            roleId: role.id,
-        },
+            roleId: role.id
+        }
     })
 
     const session = await prisma.authSession.create({
@@ -51,14 +35,16 @@ export async function createTestUser(
             userId: user.id,
             currentRefreshDigest: "test-digest",
             expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
-            userAgent: "vitest",
-        },
+            userAgent: "vitest"
+        }
     })
 
     const token = createToken({
         userId: user.id,
         sessionId: session.id,
         role: role.name,
+        permissions,
+        email: user.email
     })
 
     return {
@@ -66,6 +52,6 @@ export async function createTestUser(
         email: user.email,
         role: role.name,
         token,
-        sessionId: session.id,
+        sessionId: session.id
     }
 }
