@@ -6,7 +6,7 @@ import { env } from "./config/env.js"
 import { errorHandler } from "./middlewares/error.middleware.js"
 import authRouter from "./routes/auth.routes.js"
 import userRouter from "./routes/auth.routes.js"
-// import jobRouter from "./routes/job.routes.js"
+import jobRouter from "./routes/job.routes.js"
 import applicationRouter from "./routes/application.routes.js"
 import adminRouter from "./routes/admin.routes.js"
 export const app = express()
@@ -35,7 +35,7 @@ app.get("/health", (req, res) => {
 
 app.use("/api/auth", authRouter)
 app.use("/api/users", userRouter)
-// app.use("/api/jobs", jobRouter)
+app.use("/api/jobs", jobRouter)
 app.use("/api/applications", applicationRouter)
 app.use("/api/admin", adminRouter)
 
