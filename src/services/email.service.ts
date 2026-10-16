@@ -10,7 +10,9 @@ interface SendEmailOptions {
 
 export class EmailService {
     private static async send(options: SendEmailOptions): Promise<void> {
-        const isProduction = env.NODE_ENV === "production";
+        if (env.NODE_ENV === "test") return
+
+        const isProduction = env.NODE_ENV === "production"
 
         if (isProduction) {
             const { error } = await resend.emails.send({
