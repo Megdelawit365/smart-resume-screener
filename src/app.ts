@@ -6,10 +6,9 @@ import { env } from "./config/env.js"
 import { errorHandler } from "./middlewares/error.middleware.js"
 import authRouter from "./routes/auth.routes.js"
 import userRouter from "./routes/auth.routes.js"
-import resumeRouter from "./routes/resume.routes.js"
 // import jobRouter from "./routes/job.routes.js"
-// import applicationRouter from "./routes/application.routes.js"
-
+import applicationRouter from "./routes/application.routes.js"
+import adminRouter from "./routes/admin.routes.js"
 export const app = express()
 
 if (env.NODE_ENV === "production") {
@@ -24,7 +23,10 @@ app.use(
         allowedHeaders: ["Content-Type", "Authorization"]
     })
 )
-app.use(express.json({ limit: "20kb" }))
+app.use((req, res, next) => {
+    if (req.is("multipart/form-data")) return next()
+    return express.json({ limit: "20kb" })(req, res, next)
+})
 app.use(cookieParser())
 
 app.get("/health", (req, res) => {
@@ -34,7 +36,7 @@ app.get("/health", (req, res) => {
 app.use("/api/auth", authRouter)
 app.use("/api/users", userRouter)
 // app.use("/api/jobs", jobRouter)
-// app.use("/api/applications", applicationRouter)
-app.use("/api", resumeRouter)
+app.use("/api/applications", applicationRouter)
+app.use("/api/admin", adminRouter)
 
 app.use(errorHandler)
