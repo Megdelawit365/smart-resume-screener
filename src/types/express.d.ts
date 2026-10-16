@@ -1,31 +1,17 @@
-import type { RoleName } from "../generated/prisma/enums.ts";
-
-export interface AuthPrincipal {
-    userId: string,
-    sessionId: string,
-    role: RoleName
-}
+import type { RoleName } from "../generated/prisma/enums.ts"
 
 export interface AuthUser {
-    userId: string,
-    email: string,
-    role: RoleName,
-    permissions: string[],
-    tokenVersion: number
+    userId: string
+    sessionId: string
+    role: RoleName
+    email: string
+    permissions: string[]
 }
 
 declare global {
     namespace Express {
         interface Request {
-            auth?: AuthPrincipal
-        }
-    }
-}
-
-declare global {
-    namespace Express {
-        interface Request {
-            user?: AuthUser
+            auth?: AuthUser
         }
     }
 }
