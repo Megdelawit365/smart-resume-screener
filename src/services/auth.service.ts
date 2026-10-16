@@ -80,15 +80,24 @@ export const login = async (data: LoginInput) => {
         }
     })
 
-    const role = await prisma.role.findFirst({ where: { id: existingUser.roleId } })
+    const role = await prisma.role.findUnique({
+        where: { id: existingUser.roleId },
+        include: {
+            permissions: {
+                include: { permission: true }
+            }
+        }
+    })
 
-    const principal = {
+    const permissions = role!.permissions.map((rp) => rp.permission.action)
+
+    const accessToken = await createToken({
         userId: existingUser.id,
-        sessionId: sessionId,
-        role: role!.name
-    }
-
-    const accessToken = await createToken(principal)
+        sessionId,
+        role: role!.name,
+        permissions,
+        email: existingUser.email
+    })
     const refreshCredential = await buildRefreshCredential(session.id, refreshSecret)
 
     const user = {
@@ -130,12 +139,19 @@ export const logoutAll = async (userId: string) => {
 
 export const refresh = async (parsed: Parsed) => {
     const outcome: RefreshOutcome = await prisma.$transaction(async (tx) => {
+
         const session = await tx.authSession.findUnique({
             where: { id: parsed!.sessionId },
             include: {
                 user: {
                     include: {
-                        role: true
+                        role: {
+                            include: {
+                                permissions: {
+                                    include: { permission: true }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -177,7 +193,9 @@ export const refresh = async (parsed: Parsed) => {
         const accessToken = createToken({
             userId: session.userId,
             sessionId: session.id,
-            role: session.user.role.name
+            role: session.user.role.name,
+            email: session.user.email,
+            permissions: session.user.role.permissions.map((rp) => rp.permission.action)
         });
 
         return {
