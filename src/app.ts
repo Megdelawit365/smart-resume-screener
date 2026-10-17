@@ -11,6 +11,7 @@ import applicationRouter from "./routes/application.routes.js"
 import adminRouter from "./routes/admin.routes.js"
 import swaggerUi from "swagger-ui-express"
 import { createRequire } from "node:module"
+import profileRouter from "./routes/profile.routes.js"
 
 
 export const app = express()
@@ -48,4 +49,5 @@ app.use("/api/jobs", jobRouter)
 app.use("/api/applications", applicationRouter)
 app.use("/api/admin", adminRouter)
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
+app.use("/api/users", profileRouter)
 app.use(errorHandler)
