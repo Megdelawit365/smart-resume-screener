@@ -17,6 +17,7 @@ Candidates can register, upload a resume and apply for jobs. The system parses t
 
 ## Project Structure
 
+```bash
 smart-resume-screener/
 ├── prisma/
 │   ├── migrations/
@@ -124,6 +125,7 @@ smart-resume-screener/
 ├── README.md
 ├── tsconfig.json
 └── vitest.config.ts
+```
 
 ## Setup instructions
 
