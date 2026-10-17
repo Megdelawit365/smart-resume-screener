@@ -1,0 +1,1040 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Smart Resume Screener API",
+        "version": "1.0.0",
+        "description": "AI-powered resume screening and application pipeline."
+    },
+    "servers": [
+        {
+            "url": "http://localhost:5000",
+            "description": "Local development"
+        }
+    ],
+    "components": {
+        "securitySchemes": {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        }
+    },
+    "paths": {
+        "/health": {
+            "get": {
+                "summary": "Health check",
+                "tags": [
+                    "System"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Server is healthy"
+                    }
+                }
+            }
+        },
+        "/api/auth/register": {
+            "post": {
+                "summary": "Register a new account",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email",
+                                    "password",
+                                    "name",
+                                    "role"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "minLength": 12,
+                                        "maxLength": 128
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "role": {
+                                        "type": "string",
+                                        "enum": [
+                                            "APPLICANT",
+                                            "RECRUITER"
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Account created"
+                    },
+                    "400": {
+                        "description": "Validation failed"
+                    },
+                    "409": {
+                        "description": "Email already exists"
+                    }
+                }
+            }
+        },
+        "/api/auth/login": {
+            "post": {
+                "summary": "Login and receive access token",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful; sets refresh cookie"
+                    },
+                    "401": {
+                        "description": "Invalid credentials"
+                    }
+                }
+            }
+        },
+        "/api/auth/refresh": {
+            "post": {
+                "summary": "Rotate refresh token and get a new access token",
+                "tags": [
+                    "Auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "New access token returned"
+                    },
+                    "401": {
+                        "description": "Missing or invalid refresh cookie"
+                    },
+                    "409": {
+                        "description": "Refresh already used"
+                    }
+                }
+            }
+        },
+        "/api/auth/logout": {
+            "post": {
+                "summary": "Logout current session",
+                "tags": [
+                    "Auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Logged out"
+                    }
+                }
+            }
+        },
+        "/api/auth/logout-all": {
+            "post": {
+                "summary": "Logout all sessions for current user",
+                "tags": [
+                    "Auth"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "All sessions revoked"
+                    },
+                    "401": {
+                        "description": "Missing or invalid token"
+                    }
+                }
+            }
+        },
+        "/api/auth/google": {
+            "get": {
+                "summary": "Start Google OAuth flow",
+                "tags": [
+                    "Auth"
+                ],
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "APPLICANT",
+                                "RECRUITER"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Redirect to Google"
+                    }
+                }
+            }
+        },
+        "/api/auth/google/callback": {
+            "get": {
+                "summary": "Google OAuth callback",
+                "tags": [
+                    "Auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Authenticated; returns access token"
+                    },
+                    "400": {
+                        "description": "Invalid or missing OAuth transaction"
+                    }
+                }
+            }
+        },
+        "/api/jobs": {
+            "get": {
+                "summary": "List all jobs",
+                "tags": [
+                    "Jobs"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Jobs retrieved"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Missing jobs:read permission"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a job posting",
+                "tags": [
+                    "Jobs"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "title",
+                                    "description",
+                                    "location",
+                                    "budget",
+                                    "experienceLevel",
+                                    "requirements"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "location": {
+                                        "type": "string",
+                                        "enum": [
+                                            "REMOTE",
+                                            "ON_SITE"
+                                        ]
+                                    },
+                                    "budget": {
+                                        "type": "number"
+                                    },
+                                    "currency": {
+                                        "type": "string",
+                                        "enum": [
+                                            "USD",
+                                            "EUR",
+                                            "ETB"
+                                        ]
+                                    },
+                                    "experienceLevel": {
+                                        "type": "string",
+                                        "enum": [
+                                            "ENTRY_LEVEL",
+                                            "INTERMEDIATE",
+                                            "EXPERT"
+                                        ]
+                                    },
+                                    "requirements": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Job created"
+                    },
+                    "400": {
+                        "description": "Validation failed"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                }
+            }
+        },
+        "/api/jobs/me": {
+            "get": {
+                "summary": "List current recruiter's jobs",
+                "tags": [
+                    "Jobs"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Jobs retrieved"
+                    }
+                }
+            }
+        },
+        "/api/jobs/{id}": {
+            "get": {
+                "summary": "Get a job by id",
+                "tags": [
+                    "Jobs"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Job retrieved"
+                    },
+                    "404": {
+                        "description": "Job not found"
+                    }
+                }
+            },
+            "patch": {
+                "summary": "Update a job",
+                "tags": [
+                    "Jobs"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Job updated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Job not found"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete a job",
+                "tags": [
+                    "Jobs"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Job deleted"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                }
+            }
+        },
+        "/api/jobs/{id}/close": {
+            "patch": {
+                "summary": "Close a job",
+                "tags": [
+                    "Jobs"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Job closed"
+                    }
+                }
+            }
+        },
+        "/api/jobs/{id}/reopen": {
+            "patch": {
+                "summary": "Reopen a job",
+                "tags": [
+                    "Jobs"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Job reopened"
+                    }
+                }
+            }
+        },
+        "/api/applications/jobs/{id}/apply": {
+            "post": {
+                "summary": "Apply to a job with a resume file",
+                "tags": [
+                    "Applications"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "resume"
+                                ],
+                                "properties": {
+                                    "resume": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "coverLetter": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Application submitted"
+                    },
+                    "400": {
+                        "description": "File or body validation failed"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Job not found"
+                    }
+                }
+            }
+        },
+        "/api/applications/me": {
+            "get": {
+                "summary": "List current applicant's applications",
+                "tags": [
+                    "Applications"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Applications retrieved"
+                    }
+                }
+            }
+        },
+        "/api/applications/me/{id}": {
+            "get": {
+                "summary": "Get one of the current applicant's applications",
+                "tags": [
+                    "Applications"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Application retrieved"
+                    },
+                    "404": {
+                        "description": "Not found or not yours"
+                    }
+                }
+            }
+        },
+        "/api/applications/jobs/{id}/applications": {
+            "get": {
+                "summary": "List applications for a job",
+                "tags": [
+                    "Applications"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Applications retrieved"
+                    },
+                    "403": {
+                        "description": "Not your job"
+                    },
+                    "404": {
+                        "description": "Job not found"
+                    }
+                }
+            }
+        },
+        "/api/applications/{id}": {
+            "get": {
+                "summary": "Get an application (recruiter view, includes AI evaluations)",
+                "tags": [
+                    "Applications"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Application retrieved"
+                    },
+                    "404": {
+                        "description": "Not found or not your job"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Withdraw an application",
+                "tags": [
+                    "Applications"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Withdrawn"
+                    },
+                    "400": {
+                        "description": "Cannot withdraw at this stage"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/api/applications/{id}/evaluation": {
+            "get": {
+                "summary": "Get the AI evaluation for an application",
+                "tags": [
+                    "Applications"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Evaluation retrieved (or null if pending)"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Application not found"
+                    }
+                }
+            }
+        },
+        "/api/applications/{id}/shortlist": {
+            "patch": {
+                "summary": "Shortlist an application",
+                "tags": [
+                    "Applications"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Shortlisted"
+                    },
+                    "400": {
+                        "description": "Invalid status transition"
+                    },
+                    "403": {
+                        "description": "Not your job"
+                    },
+                    "404": {
+                        "description": "Application not found"
+                    }
+                }
+            }
+        },
+        "/api/applications/{id}/reject": {
+            "patch": {
+                "summary": "Reject an application",
+                "tags": [
+                    "Applications"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Rejected"
+                    },
+                    "400": {
+                        "description": "Invalid status transition"
+                    },
+                    "403": {
+                        "description": "Not your job"
+                    },
+                    "404": {
+                        "description": "Application not found"
+                    }
+                }
+            }
+        },
+        "/api/applications/{id}/accept": {
+            "patch": {
+                "summary": "Accept (hire) an application",
+                "tags": [
+                    "Applications"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Hired"
+                    },
+                    "400": {
+                        "description": "Invalid status transition"
+                    },
+                    "403": {
+                        "description": "Not your job"
+                    },
+                    "404": {
+                        "description": "Application not found"
+                    }
+                }
+            }
+        },
+        "/api/admin/users": {
+            "get": {
+                "summary": "List all users (admin)",
+                "tags": [
+                    "Admin"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Users retrieved"
+                    },
+                    "403": {
+                        "description": "Requires admin:users"
+                    }
+                }
+            }
+        },
+        "/api/admin/users/{id}/active": {
+            "patch": {
+                "summary": "Activate or deactivate a user",
+                "tags": [
+                    "Admin"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "isActive"
+                                ],
+                                "properties": {
+                                    "isActive": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User status updated"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                }
+            }
+        },
+        "/api/admin/users/{id}/role": {
+            "patch": {
+                "summary": "Change a user's role",
+                "tags": [
+                    "Admin"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "role"
+                                ],
+                                "properties": {
+                                    "role": {
+                                        "type": "string",
+                                        "enum": [
+                                            "APPLICANT",
+                                            "RECRUITER",
+                                            "ADMIN"
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Role updated"
+                    },
+                    "400": {
+                        "description": "Invalid role"
+                    },
+                    "404": {
+                        "description": "User or role not found"
+                    }
+                }
+            }
+        },
+        "/api/admin/jobs": {
+            "get": {
+                "summary": "List all jobs (admin)",
+                "tags": [
+                    "Admin"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Jobs retrieved"
+                    }
+                }
+            }
+        },
+        "/api/admin/applications": {
+            "get": {
+                "summary": "List all applications (admin)",
+                "tags": [
+                    "Admin"
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Applications retrieved"
+                    }
+                }
+            }
+        }
+    }
+}

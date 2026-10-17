@@ -9,6 +9,10 @@ import userRouter from "./routes/auth.routes.js"
 import jobRouter from "./routes/job.routes.js"
 import applicationRouter from "./routes/application.routes.js"
 import adminRouter from "./routes/admin.routes.js"
+import swaggerUi from "swagger-ui-express"
+import { createRequire } from "node:module"
+
+
 export const app = express()
 
 if (env.NODE_ENV === "production") {
@@ -29,6 +33,11 @@ app.use((req, res, next) => {
 })
 app.use(cookieParser())
 
+
+const require = createRequire(import.meta.url)
+const swaggerDocument = require("./docs/openapi.json")
+
+
 app.get("/health", (req, res) => {
     res.status(200).json({ status: "ok" })
 })
@@ -38,5 +47,5 @@ app.use("/api/users", userRouter)
 app.use("/api/jobs", jobRouter)
 app.use("/api/applications", applicationRouter)
 app.use("/api/admin", adminRouter)
-
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 app.use(errorHandler)
