@@ -1,0 +1,432 @@
+{
+    "info": {
+        "name": "Smart Resume Screener",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:5000"
+        },
+        {
+            "key": "applicantToken",
+            "value": ""
+        },
+        {
+            "key": "recruiterToken",
+            "value": ""
+        },
+        {
+            "key": "adminToken",
+            "value": ""
+        },
+        {
+            "key": "jobId",
+            "value": ""
+        },
+        {
+            "key": "applicationId",
+            "value": ""
+        }
+    ],
+    "item": [
+        {
+            "name": "Health",
+            "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/health"
+            }
+        },
+        {
+            "name": "Register Applicant",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"email\": \"app@test.com\",\n  \"password\": \"password123445\",\n  \"name\": \"Applicant One\",\n  \"role\": \"APPLICANT\"\n}"
+                },
+                "url": "{{baseUrl}}/api/auth/register"
+            }
+        },
+        {
+            "name": "Register Recruiter",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"email\": \"rec@test.com\",\n  \"password\": \"password123445\",\n  \"name\": \"Recruiter One\",\n  \"role\": \"RECRUITER\"\n}"
+                },
+                "url": "{{baseUrl}}/api/auth/register"
+            }
+        },
+        {
+            "name": "Login Applicant",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "const json = pm.response.json();",
+                            "if (json.accessToken) pm.collectionVariables.set('applicantToken', json.accessToken);"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"email\": \"app@test.com\",\n  \"password\": \"password123445\"\n}"
+                },
+                "url": "{{baseUrl}}/api/auth/login"
+            }
+        },
+        {
+            "name": "Login Recruiter",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "const json = pm.response.json();",
+                            "if (json.accessToken) pm.collectionVariables.set('recruiterToken', json.accessToken);"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"email\": \"rec@test.com\",\n  \"password\": \"password123445\"\n}"
+                },
+                "url": "{{baseUrl}}/api/auth/login"
+            }
+        },
+        {
+            "name": "Get Me (Applicant)",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{applicantToken}}"
+                    }
+                ],
+                "url": "{{baseUrl}}/api/users/me"
+            }
+        },
+        {
+            "name": "Create Job (Recruiter)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "const json = pm.response.json();",
+                            "if (json.job && json.job.id) pm.collectionVariables.set('jobId', json.job.id);"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{recruiterToken}}"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"title\": \"Backend Engineer\",\n  \"description\": \"Build REST APIs with Node.js and PostgreSQL\",\n  \"location\": \"REMOTE\",\n  \"budget\": 1000,\n  \"currency\": \"USD\",\n  \"experienceLevel\": \"INTERMEDIATE\",\n  \"requirements\": [\"Node.js\", \"TypeScript\", \"PostgreSQL\"]\n}"
+                },
+                "url": "{{baseUrl}}/api/jobs"
+            }
+        },
+        {
+            "name": "List Jobs",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{applicantToken}}"
+                    }
+                ],
+                "url": "{{baseUrl}}/api/jobs"
+            }
+        },
+        {
+            "name": "Apply to Job (with resume)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "const json = pm.response.json();",
+                            "if (json.application && json.application.id) pm.collectionVariables.set('applicationId', json.application.id);"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{applicantToken}}"
+                    }
+                ],
+                "body": {
+                    "mode": "formdata",
+                    "formdata": [
+                        {
+                            "key": "coverLetter",
+                            "value": "I am very interested",
+                            "type": "text"
+                        },
+                        {
+                            "key": "resume",
+                            "type": "file",
+                            "src": "tests/files/resume.pdf"
+                        }
+                    ]
+                },
+                "url": "{{baseUrl}}/api/applications/jobs/{{jobId}}/apply"
+            }
+        },
+        {
+            "name": "My Applications",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{applicantToken}}"
+                    }
+                ],
+                "url": "{{baseUrl}}/api/applications/me"
+            }
+        },
+        {
+            "name": "Get My Application",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{applicantToken}}"
+                    }
+                ],
+                "url": "{{baseUrl}}/api/applications/me/{{applicationId}}"
+            }
+        },
+        {
+            "name": "List Applications for Job",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{recruiterToken}}"
+                    }
+                ],
+                "url": "{{baseUrl}}/api/applications/jobs/{{jobId}}/applications"
+            }
+        },
+        {
+            "name": "Get Evaluation",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{recruiterToken}}"
+                    }
+                ],
+                "url": "{{baseUrl}}/api/applications/{{applicationId}}/evaluation"
+            }
+        },
+        {
+            "name": "Shortlist",
+            "request": {
+                "method": "PATCH",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{recruiterToken}}"
+                    }
+                ],
+                "url": "{{baseUrl}}/api/applications/{{applicationId}}/shortlist"
+            }
+        },
+        {
+            "name": "Reject",
+            "request": {
+                "method": "PATCH",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{recruiterToken}}"
+                    }
+                ],
+                "url": "{{baseUrl}}/api/applications/{{applicationId}}/reject"
+            }
+        },
+        {
+            "name": "Accept (Hire)",
+            "request": {
+                "method": "PATCH",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{recruiterToken}}"
+                    }
+                ],
+                "url": "{{baseUrl}}/api/applications/{{applicationId}}/accept"
+            }
+        },
+        {
+            "name": "Withdraw",
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{applicantToken}}"
+                    }
+                ],
+                "url": "{{baseUrl}}/api/applications/{{applicationId}}"
+            }
+        },
+        {
+            "name": "ERROR - Register duplicate email",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"email\": \"app@test.com\",\n  \"password\": \"password123445\",\n  \"name\": \"Dup\",\n  \"role\": \"APPLICANT\"\n}"
+                },
+                "url": "{{baseUrl}}/api/auth/register"
+            }
+        },
+        {
+            "name": "ERROR - Login wrong password",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"email\": \"app@test.com\",\n  \"password\": \"wrong\"\n}"
+                },
+                "url": "{{baseUrl}}/api/auth/login"
+            }
+        },
+        {
+            "name": "ERROR - No token",
+            "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/users/me"
+            }
+        },
+        {
+            "name": "ERROR - Recruiter tries to apply",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{recruiterToken}}"
+                    }
+                ],
+                "body": {
+                    "mode": "formdata",
+                    "formdata": [
+                        {
+                            "key": "resume",
+                            "type": "file",
+                            "src": "tests/files/resume.pdf"
+                        }
+                    ]
+                },
+                "url": "{{baseUrl}}/api/applications/jobs/{{jobId}}/apply"
+            }
+        },
+        {
+            "name": "ERROR - Wrong file type",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{applicantToken}}"
+                    }
+                ],
+                "body": {
+                    "mode": "formdata",
+                    "formdata": [
+                        {
+                            "key": "resume",
+                            "type": "file",
+                            "src": "tests/files/notes.txt"
+                        }
+                    ]
+                },
+                "url": "{{baseUrl}}/api/applications/jobs/{{jobId}}/apply"
+            }
+        },
+        {
+            "name": "ERROR - Unknown application",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{recruiterToken}}"
+                    }
+                ],
+                "url": "{{baseUrl}}/api/applications/00000000-0000-0000-0000-000000000000/evaluation"
+            }
+        }
+    ]
+}
